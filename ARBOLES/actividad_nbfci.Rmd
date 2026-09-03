@@ -1,0 +1,93 @@
+---
+title: "Aplicación de Naive Bayes al Rendimiento Estudiantil (FCI)"
+author: "Jose Ramiro Garcia May"
+date: "2026-09-02"
+output: html_document
+---
+
+## 1. Introducción
+
+En esta actividad aplicaremos el clasificador probabilístico **Naive Bayes** utilizando lenguaje R para predecir el rendimiento académico de los estudiantes de la FCI (`Rendimiento`) en función de variables independientes como su tiempo de estudio, asistencia, participación en clase y situación económica.
+
+## 2. Creación del Dataset de Estudiantes
+
+Dado que la actividad solicita un conjunto de datos tabulado de entre 20 y 50 estudiantes basado en los criterios definidos, generaremos en R un dataframe con 30 registros que respeten las categorías establecidas para cada atributo.
+
+```{r setup, message=FALSE, warning=FALSE}
+library(e1071)
+library(caret)
+
+# Fijar semilla para reproducibilidad
+set.seed(42)
+
+# Crear datos simulados de 30 estudiantes basados en la estructura solicitada
+n <- 30
+tiempo_estudio <- sample(c("Alto", "Medio", "Bajo"), n, replace = TRUE, prob = c(0.4, 0.4, 0.2))
+asistencia <- sample(c("Alta", "Media", "Baja"), n, replace = TRUE, prob = c(0.5, 0.3, 0.2))
+participacion <- sample(c("Alta", "Media", "Baja"), n, replace = TRUE, prob = c(0.3, 0.5, 0.2))
+situacion_econ <- sample(c("Buena", "Mala"), n, replace = TRUE, prob = c(0.7, 0.3))
+
+# Lógica condicional simulada para el rendimiento académico
+rendimiento <- character(n)
+for(i in 1:n) {
+  if(tiempo_estudio[i] == "Alto" && asistencia[i] == "Alta") {
+    rendimiento[i] <- sample(c("Excelente", "Bueno"), 1, prob = c(0.7, 0.3))
+  } else if(tiempo_estudio[i] == "Bajo" || asistencia[i] == "Baja") {
+    rendimiento[i] <- sample(c("Regular", "Deficiente"), 1, prob = c(0.4, 0.6))
+  } else {
+    rendimiento[i] <- sample(c("Bueno", "Regular"), 1, prob = c(0.5, 0.5))
+  }
+}
+
+# Construir dataframe y convertir a factores (obligatorio para Naive Bayes categórico)
+estudiantes_df <- data.frame(
+  TiempoEstudio = as.factor(tiempo_estudio),
+  Asistencia = as.factor(asistencia),
+  Participacion = as.factor(participacion),
+  SituacionEcon = as.factor(situacion_econ),
+  Rendimiento = as.factor(rendimiento)
+)
+
+print("Primeras filas del dataset de estudiantes:")
+head(estudiantes_df)
+```
+
+## 3. División de Datos (80% Entrenamiento y 20% Prueba)
+
+Separamos nuestros datos en dos conjuntos: el 80% servirá para entrenar el modelo probabilístico de Naive Bayes y el 20% restante para evaluar su precisión con datos nuevos.
+
+```{r particion}
+# Crear partición 80% entrenamiento
+train_index <- createDataPartition(estudiantes_df$Rendimiento, p = 0.8, list = FALSE)
+
+train_data <- estudiantes_df[train_index, ]
+test_data <- estudiantes_df[-train_index, ]
+
+cat("Tamaño del conjunto de entrenamiento:", nrow(train_data), "registros\n")
+cat("Tamaño del conjunto de prueba:", nrow(test_data), "registros\n")
+```
+
+## 4. Entrenamiento del Modelo Naive Bayes
+
+Utilizamos la función `naiveBayes` del paquete `e1071` para calcular las probabilidades condicionales de cada clase objetivo en función de los atributos.
+
+```{r entrenamiento}
+# Entrenar el modelo
+modelo_nb_fci <- naiveBayes(Rendimiento ~ ., data = train_data)
+print(modelo_nb_fci)
+```
+
+## 5. Predicción y Matriz de Confusión
+
+Evaluamos el modelo utilizando el conjunto de prueba (20%) y generamos la matriz de confusión para contrastar las predicciones frente a los valores reales.
+
+```{r evaluacion}
+# Realizar predicciones
+predicciones <- predict(modelo_nb_fci, test_data)
+
+# Crear matriz de confusión usando caret
+matriz_conf <- confusionMatrix(predicciones, test_data$Rendimiento)
+
+print("--- MATRIZ DE CONFUSIÓN Y MÉTRICAS ---")
+print(matriz_conf)
+```

@@ -1,0 +1,107 @@
+---
+title: "Aplicación de Naive Bayes al Dataset Iris"
+author: "JOSE RAMIRO GARCIA MAY"
+date: "2026-09-02"
+output: html_document
+---
+
+## 1. Introducción a Naive Bayes
+
+El clasificador **Naive Bayes** es un algoritmo de aprendizaje automático probabilístico basado en el Teorema de Bayes. Se utiliza principalmente para tareas de clasificación. 
+
+La característica principal de este modelo (y por lo que recibe el nombre de "Naive" o "Ingenuo") es que **asume independencia condicional entre las variables predictoras** dada la clase. Esto significa que el algoritmo supone que la presencia o el valor de una característica particular (por ejemplo, el largo del sépalo) no tiene absolutamente ninguna relación con la presencia o el valor de otra característica (como el ancho del pétalo), lo cual rara vez ocurre en la vida real, pero computacionalmente funciona de manera excelente.
+
+A continuación, implementaremos este algoritmo utilizando el conjunto de datos `iris`.
+
+## 2. Preparación del Entorno y los Datos
+
+Primero, cargamos las librerías necesarias y el dataset Iris, el cual ya viene integrado en R.
+
+```{r setup, message=FALSE, warning=FALSE}
+# Cargar paquetes
+cat("\nIniciando Naive Bayes para Iris simple...\n")
+cat("\nCargando paquetes...\n")
+library(e1071)    # Contiene la función naiveBayes
+library(caret)    # Para evaluación del modelo
+library(ggplot2)  # Para visualización
+
+# Cargar el dataset Iris (viene incluido en R)
+data(iris)
+cat("\nEstructura del dataset Iris:\n")
+str(iris)
+```
+
+## 3. División de los Datos
+
+Para poder evaluar si nuestro modelo aprende correctamente, dividimos los datos en dos partes: un 70% para entrenar el modelo y un 30% para ponerlo a prueba.
+
+```{r particion}
+# Semilla para reproducibilidad
+set.seed(123)
+
+cat("\nCreando particiones de entrenamiento y prueba:\n")
+# Crear índices para división (70% entrenamiento, 30% prueba)
+train_index <- createDataPartition(iris$Species, p = 0.7, list = FALSE)
+
+# Crear conjuntos de entrenamiento y prueba
+train_data <- iris[train_index, ]
+test_data <- iris[-train_index, ]
+
+# Verificar tamaños
+cat("Dimensiones del conjunto de entrenamiento:\n")
+print(dim(train_data))
+cat("Dimensiones del conjunto de prueba:\n")
+print(dim(test_data))
+```
+
+## 4. Entrenamiento del Modelo Naive Bayes
+
+Utilizamos la función `naiveBayes` del paquete `e1071`. La sintaxis `Species ~ .` le indica a R que queremos predecir la especie utilizando todas las demás columnas disponibles en los datos de entrenamiento.
+
+```{r entrenamiento}
+cat("\nEntrenando el modelo Naive Bayes...\n")
+modelo_nb <- naiveBayes(Species ~ ., data = train_data)
+```
+
+## 5. Predicciones con los Datos de Prueba
+
+Una vez entrenado, usamos el 30% de los datos que separamos previamente para ver qué tan bien predice el modelo.
+
+```{r predicciones}
+# Predecir con datos de prueba
+predicciones <- predict(modelo_nb, test_data)
+
+# Ver predicciones
+cat("\nPredicciones generadas por el modelo:\n")
+print(predicciones)
+
+# Comparar con valores reales
+cat("\nValores reales del dataset:\n")
+print(test_data$Species)
+```
+
+## 6. Predecir Nuevas Observaciones y Probabilidades
+
+Finalmente, podemos inventar datos de nuevas flores para ver cómo las clasificaría nuestro modelo. Además de la clase final, Naive Bayes nos permite ver los porcentajes de probabilidad que calculó para cada especie.
+
+```{r nuevas_observaciones}
+nuevos_datos <- data.frame(
+  Sepal.Length = c(5.1, 6.7, 5.8),
+  Sepal.Width = c(3.5, 3.0, 2.7),
+  Petal.Length = c(1.4, 5.2, 4.2),
+  Petal.Width = c(0.2, 2.3, 1.3)
+)
+cat("\nDatos nuevos a predecir:\n")
+print(nuevos_datos)
+
+# Predecir nuevas observaciones
+nuevas_predicciones <- predict(modelo_nb, nuevos_datos)
+cat("\nNuevas predicciones:\n")
+print(nuevas_predicciones)
+
+# También obtener probabilidades
+cat("\nProbabilidades de las nuevas predicciones:\n")
+probabilidades <- predict(modelo_nb, nuevos_datos, type = "raw")
+print(probabilidades)
+cat("\nFIN\n")
+```
